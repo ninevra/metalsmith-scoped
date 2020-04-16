@@ -11,5 +11,8 @@
     "metalsmith"
   ],
   "author": "ninevra",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "multimatch": "^4.0.0"
+  }
 }
