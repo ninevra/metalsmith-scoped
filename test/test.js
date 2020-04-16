@@ -55,17 +55,18 @@ describe('scoped', function () {
         done();
       });
     });
+    
     it('["**/*.html"] should include all .html files', function (done) {
       scoped(dummy, ['**/*.html'], {})(testFiles, fakeMetalsmith, function () {
         expect(dummy.calledOnce).to.be.true;
         const [files, ms] = dummy.getCall(0).args;
         expect(ms).to.equal(fakeMetalsmith);
-        console.log(files);
         expect(files).to.have.own.property('contents/posts/post-1.html', testFiles['contents/posts/post-1.html']);
         expect(files).to.deep.equal(objectSubset(testFiles, [
           'contents/posts/post-1.html',
           'contents/top-level.html'
         ]));
+        expect(files['index.md']).to.be.undefined;
         expect(files).to.not.have.own.property('contents/posts/post-0.md');
         expect(files).to.not.have.own.property('index.md');
         done();
