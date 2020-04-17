@@ -75,23 +75,26 @@ describe('scoped', function () {
   });
 
   describe('proxy invariants', function () {
-    // Extract the filesView proxy from a call to
+    // Extract the filesView proxy from a scoped plugin invocation
     function getProxy(patterns, files) {
       return new Promise((resolve, reject) => {
         scoped((files) => resolve(files), patterns)(files);
-      })
+      });
     }
+
     describe('get', function () {
       it('should truthfully report non-writable, non-configurable data properties', async function () {
+        // TODO: test with inheritance? probably not reachable with scoped
         const obj = {};
         Object.defineProperty(obj, 'path/to/file', {
           configurable: false,
           writable: false,
           value: 42
-        })
+        });
         const proxy = await getProxy([], obj);
         expect(proxy['path/to/file']).to.equal(42);
       });
+
       it('should report undefined for non-configurable accessor properties with undefined [[Get]]', async function () {
         const obj = {};
         const spy = sinon.spy();
@@ -103,6 +106,25 @@ describe('scoped', function () {
         proxy['path/to/file'] = 42;
         expect(spy).to.have.been.calledOnceWithExactly(42);
         expect(proxy['path/to/file']).to.be.undefined;
+      });
+    });
+
+    describe('has', function () {
+      it('should return true for non-configurable own properties', async function () {
+        const obj = {};
+        Object.defineProperty(obj, 'path/to/file', {
+          configurable: false,
+          value: 42
+        });
+        const proxy = await getProxy([], obj);
+        expect(Reflect.has(proxy, 'path/to/file')).to.be.true;
+      });
+      it('should return true for own properties of non-extensible objects', async function () {
+        const obj = {answer: 42};
+        Object.preventExtensions(obj);
+        const proxy = await getProxy([], obj);
+        expect(Reflect.has(proxy, 'answer')).to.be.true;
+        expect(proxy).to.have.own.property('answer');
       });
     });
   });
