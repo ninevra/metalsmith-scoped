@@ -1,6 +1,6 @@
 const scoped = require('../index');
 
-const expect = require('chai').expect;
+const expect = require('chai').use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 
 describe('scoped', function () {
@@ -70,7 +70,40 @@ describe('scoped', function () {
         expect(files).to.not.have.own.property('contents/posts/post-0.md');
         expect(files).to.not.have.own.property('index.md');
         done();
+      });
+    });
+  });
+
+  describe('proxy invariants', function () {
+    // Extract the filesView proxy from a call to
+    function getProxy(patterns, files) {
+      return new Promise((resolve, reject) => {
+        scoped((files) => resolve(files), patterns)(files);
       })
+    }
+    describe('get', function () {
+      it('should truthfully report non-writable, non-configurable data properties', async function () {
+        const obj = {};
+        Object.defineProperty(obj, 'path/to/file', {
+          configurable: false,
+          writable: false,
+          value: 42
+        })
+        const proxy = await getProxy([], obj);
+        expect(proxy['path/to/file']).to.equal(42);
+      });
+      it('should report undefined for non-configurable accessor properties with undefined [[Get]]', async function () {
+        const obj = {};
+        const spy = sinon.spy();
+        Object.defineProperty(obj, 'path/to/file', {
+          configurable: false,
+          set: spy
+        });
+        const proxy = await getProxy(['**/*'], obj);
+        proxy['path/to/file'] = 42;
+        expect(spy).to.have.been.calledOnceWithExactly(42);
+        expect(proxy['path/to/file']).to.be.undefined;
+      });
     });
   });
 });
