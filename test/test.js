@@ -149,6 +149,27 @@ describe('scoped', function () {
       });
     });
   });
-  it('should pass through the multimatch options');
 
+  describe('should pass through the multimatch options', function () {
+    specify('test noglobstar', function () {
+      scoped(dummy, ['**/post*'], {noglobstar: true})(testFiles, fakeMetalsmith, function () {
+        const [view] = dummy.getCall(0).args;
+        expect(view).to.be.empty;
+      });
+    });
+
+    specify('test without dot', function () {
+      scoped(dummy, ['*'])({'.dotfile': {}}, fakeMetalsmith, function () {
+        const [view] = dummy.getCall(0).args;
+        expect(view).to.be.empty;
+      });
+    });
+
+    specify('test with dot', function () {
+      scoped(dummy, ['*'], {dot: true})({'.dotfile': {}}, fakeMetalsmith, function () {
+        const [view] = dummy.getCall(0).args;
+        expect(view).to.have.all.keys('.dotfile');
+      });
+    });
+  });
 });
