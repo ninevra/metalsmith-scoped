@@ -150,6 +150,87 @@ describe('scoped', function () {
     });
   });
 
+  describe('writing to the Proxy...', function () {
+
+    context('in scope...', function () {
+      it('should allow writes', function () {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          view['contents/posts/post-3.md'] = 'test';
+          expect(view['contents/posts/post-3.md']).to.equal('test');
+          expect(testFiles['contents/posts/post-3.md']).to.equal('test');
+        })
+      });
+
+      it('should allow overwrites', function () {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          view['contents/posts/post-0.md'] = 42;
+          expect(view['contents/posts/post-0.md']).to.equal(42);
+          expect(testFiles['contents/posts/post-0.md']).to.equal(42);
+        });
+      });
+
+      it('should allow deletions', function () {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          delete view['contents/posts/post-0.md'];
+          expect(view['contents/posts/post-0.md']).to.be.undefined;
+          expect(testFiles['contents/posts/post-0.md']).to.be.undefined;
+        });
+      });
+
+      it('should allow edits', function () {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          const content = Buffer.from('edited content');
+          view['contents/posts/post-1.html'].contents = content;
+          expect(view['contents/posts/post-1.html'].contents).to.equal(content);
+          expect(testFiles['contents/posts/post-1.html'].contents).to.equal(content);
+        });
+      });
+    });
+
+    context('out of scope', function () {
+      it('should disallow set', function (done) {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          expect(() => view['index.md'] = 'foo').to.throw('out of scope').with.not.instanceof(TypeError);
+          expect(() => Reflect.set(view, 'index.md', 'foo')).to.throw('out of scope').with.not.instanceof(TypeError);
+          done();
+        });
+      });
+
+      it('should disallow edits', function (done) {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          expect(() => view['index.md]'].contents = 'foo').to.throw();
+          done();
+        });
+      });
+
+      it('should disallow defineProperty', function (done) {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          expect(() => Object.defineProperty(view, 'search.md', {configurable: false, value: 42}))
+            .to.throw('out of scope').not.instanceof(TypeError);
+          expect(() => Reflect.defineProperty(view, 'search.md', {configurable: false, value: 42}))
+            .to.throw('out of scope').not.instanceof(TypeError);
+          done();
+        });
+      });
+
+      it('should disallow delete', function (done) {
+        scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
+          const [view] = dummy.getCall(0).args;
+          expect(() => delete view['index.md']).to.throw('out of scope').not.instanceof(TypeError);
+          expect(() => Reflect.deleteProperty(view, 'index.md')).to.throw('out of scope').not.instanceof(TypeError);
+          done();
+        });
+      });
+    });
+  });
+
   describe('should pass through the multimatch options', function () {
     specify('test noglobstar', function () {
       scoped(dummy, ['**/post*'], {noglobstar: true})(testFiles, fakeMetalsmith, function () {
