@@ -95,16 +95,17 @@ describe('scoped', function () {
 
   describe('when reading from the Proxy, out-of-scope files...', function () {
 
-    it('should be hidden from indexing/direct access operations', function () {
+    it('should be hidden from indexing/direct access operations', function (done) {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(view['contents/posts/post-0.md']).to.equal(testFiles['contents/posts/post-0.md']);
         expect(view['index.md']).to.be.undefined;
         expect(Reflect.get(view, 'index.md')).to.be.undefined;
+        done();
       });
     });
 
-    it('should be hidden from iteration', function () {
+    it('should be hidden from iteration', function (done) {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         const files = [];
@@ -117,18 +118,20 @@ describe('scoped', function () {
         ]);
         expect(files).to.not.include('index.md')
           .and.not.include('contents/top-level.html');
+        done();
       });
     });
 
-    it('should be hidden from getOwnPropertyDescriptor', function () {
+    it('should be hidden from getOwnPropertyDescriptor', function (done) {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(Object.getOwnPropertyDescriptor(view, 'index.md')).to.be.undefined;
         expect(Object.getOwnPropertyDescriptor(view, 'content/top-level.html')).to.be.undefined;
+        done();
       });
     });
 
-    it('should be hidden from Object.keys()', function () {
+    it('should be hidden from Object.keys()', function (done) {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(Object.keys(view)).to.have.members([
@@ -137,15 +140,17 @@ describe('scoped', function () {
         ]);
         expect(Object.keys(view)).to.not.include('index.md')
           .and.not.include('contents/top-level.html');
+        done();
       });
     });
 
-    it('should be hidden from the in operator', function () {
+    it('should be hidden from the in operator', function (done) {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect('index.md' in view).to.be.false;
         expect('contents/top-level.html' in view).to.be.false;
         expect('contents/posts/post-0.md' in view).to.be.true;
+        done();
       });
     });
   });
@@ -153,40 +158,44 @@ describe('scoped', function () {
   describe('writing to the Proxy...', function () {
 
     context('in scope...', function () {
-      it('should allow writes', function () {
+      it('should allow writes', function (done) {
         scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
           const [view] = dummy.getCall(0).args;
           view['contents/posts/post-3.md'] = 'test';
           expect(view['contents/posts/post-3.md']).to.equal('test');
           expect(testFiles['contents/posts/post-3.md']).to.equal('test');
+          done();
         })
       });
 
-      it('should allow overwrites', function () {
+      it('should allow overwrites', function (done) {
         scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
           const [view] = dummy.getCall(0).args;
           view['contents/posts/post-0.md'] = 42;
           expect(view['contents/posts/post-0.md']).to.equal(42);
           expect(testFiles['contents/posts/post-0.md']).to.equal(42);
+          done();
         });
       });
 
-      it('should allow deletions', function () {
+      it('should allow deletions', function (done) {
         scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
           const [view] = dummy.getCall(0).args;
           delete view['contents/posts/post-0.md'];
           expect(view['contents/posts/post-0.md']).to.be.undefined;
           expect(testFiles['contents/posts/post-0.md']).to.be.undefined;
+          done();
         });
       });
 
-      it('should allow edits', function () {
+      it('should allow edits', function (done) {
         scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
           const [view] = dummy.getCall(0).args;
           const content = Buffer.from('edited content');
           view['contents/posts/post-1.html'].contents = content;
           expect(view['contents/posts/post-1.html'].contents).to.equal(content);
           expect(testFiles['contents/posts/post-1.html'].contents).to.equal(content);
+          done();
         });
       });
     });
@@ -231,25 +240,28 @@ describe('scoped', function () {
     });
   });
 
-  describe('should pass through the multimatch options', function () {
-    specify('test noglobstar', function () {
+  describe('should pass through the multimatch options', function (done) {
+    specify('test noglobstar', function (done) {
       scoped(dummy, ['**/post*'], {noglobstar: true})(testFiles, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(view).to.be.empty;
+        done();
       });
     });
 
-    specify('test without dot', function () {
+    specify('test without dot', function (done) {
       scoped(dummy, ['*'])({'.dotfile': {}}, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(view).to.be.empty;
+        done();
       });
     });
 
-    specify('test with dot', function () {
+    specify('test with dot', function (done) {
       scoped(dummy, ['*'], {dot: true})({'.dotfile': {}}, fakeMetalsmith, function () {
         const [view] = dummy.getCall(0).args;
         expect(view).to.have.all.keys('.dotfile');
+        done();
       });
     });
   });
