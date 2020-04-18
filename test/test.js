@@ -4,6 +4,29 @@ const expect = require('chai').use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 
 describe('scoped', function () {
+
+  let testFiles;
+  const fakeMetalsmith = {};
+  const dummy = sinon.stub().callsFake((files, metalsmith, callback) => callback());
+
+  beforeEach(function () {
+    testFiles = {
+      'contents/posts/post-0.md': {
+        contents: Buffer.from('*hello world*')
+      },
+      'contents/posts/post-1.html': {
+        contents: Buffer.from('<em>hello world</em>')
+      },
+      'index.md': {
+        contents: Buffer.from('# A Sample Website')
+      },
+      'contents/top-level.html': {
+        contents: Buffer.from('Not a post')
+      }
+    };
+    dummy.resetHistory();
+  });
+
   it('should return a function', function () {
     expect(scoped(() => {}, [], {})).to.be.a('function');
   });
@@ -19,83 +42,58 @@ describe('scoped', function () {
     });
   });
 
-  describe('when given patterns', function () {
-    let testFiles;
-    const fakeMetalsmith = {};
-    const dummy = sinon.stub().callsFake((files, metalsmith, callback) => callback());
+  function objectSubset (obj, keys) {
+    return Object.fromEntries(Object.entries(obj).filter(([key]) => keys.includes(key)));
+  }
 
-    beforeEach(function () {
-      testFiles = {
-        'contents/posts/post-0.md': {
-          contents: Buffer.from('*hello world*')
-        },
-        'contents/posts/post-1.html': {
-          contents: Buffer.from('<em>hello world</em>')
-        },
-        'index.md': {
-          contents: Buffer.from('# A Sample Website')
-        },
-        'contents/top-level.html': {
-          contents: Buffer.from('Not a post')
-        }
+  it('[] should include no files', function (done) {
+    scoped(dummy, [], {})(testFiles, fakeMetalsmith, function () {
+      expect(dummy.calledOnce).to.be.true;
+      const [files, ms] = dummy.getCall(0).args;
+      expect(ms).to.equal(fakeMetalsmith);
+      expect(files).to.deep.equal({});
+      // test low-level accesses
+      for (let file of Object.keys(testFiles)) {
+        expect(Reflect.get(files, file)).to.be.undefined;
+        expect(Reflect.has(files, file)).to.be.false;
+        expect(Reflect.getOwnPropertyDescriptor(files, file)).to.be.undefined;
+      }
+      expect(Reflect.ownKeys(files)).to.have.lengthOf(0);
+      done();
+    });
+  });
+
+  it('["**/*.html"] should include only all .html files', function (done) {
+    scoped(dummy, ['**/*.html'], {})(testFiles, fakeMetalsmith, function () {
+      expect(dummy.calledOnce).to.be.true;
+      const [files, ms] = dummy.getCall(0).args;
+      expect(ms).to.equal(fakeMetalsmith);
+      expect(files).to.have.own.property('contents/posts/post-1.html', testFiles['contents/posts/post-1.html']);
+      expect(files).to.deep.equal(objectSubset(testFiles, [
+        'contents/posts/post-1.html',
+        'contents/top-level.html'
+      ]));
+      expect(files['index.md']).to.be.undefined;
+      expect(files).to.not.have.own.property('contents/posts/post-0.md');
+      expect(files).to.not.have.own.property('index.md');
+      // test low-level accesses
+      var expected = {
+        'contents/posts/post-1.html': true,
+        'contents/top-level.html': true,
+        'contents/posts/post-0.md': false,
+        'index.md': false
       };
-      dummy.resetHistory();
-    });
-
-    function objectSubset (obj, keys) {
-      return Object.fromEntries(Object.entries(obj).filter(([key]) => keys.includes(key)));
-    }
-
-    it('[] should include no files', function (done) {
-      scoped(dummy, [], {})(testFiles, fakeMetalsmith, function () {
-        expect(dummy.calledOnce).to.be.true;
-        const args = dummy.getCall(0).args;
-        expect(args[1]).to.equal(fakeMetalsmith);
-        expect(args[0]).to.deep.equal({});
-        done();
-      });
-    });
-
-    it('["**/*.html"] should include all .html files', function (done) {
-      scoped(dummy, ['**/*.html'], {})(testFiles, fakeMetalsmith, function () {
-        expect(dummy.calledOnce).to.be.true;
-        const [files, ms] = dummy.getCall(0).args;
-        expect(ms).to.equal(fakeMetalsmith);
-        expect(files).to.have.own.property('contents/posts/post-1.html', testFiles['contents/posts/post-1.html']);
-        expect(files).to.deep.equal(objectSubset(testFiles, [
-          'contents/posts/post-1.html',
-          'contents/top-level.html'
-        ]));
-        expect(files['index.md']).to.be.undefined;
-        expect(files).to.not.have.own.property('contents/posts/post-0.md');
-        expect(files).to.not.have.own.property('index.md');
-        done();
-      });
+      for (let file of Object.keys(testFiles)) {
+        expect(Reflect.get(files, file)).to.equal(expected[file] ? testFiles[file] : undefined);
+        expect(Reflect.has(files, file)).to.equal(expected[file]);
+        expect(Reflect.getOwnPropertyDescriptor(files, file)).to.deep.equal(expected[file] ? Reflect.getOwnPropertyDescriptor(testFiles, file) : undefined);
+      }
+      expect(Reflect.ownKeys(files)).to.deep.equal(Object.keys(expected).filter(k => expected[k]));
+      done();
     });
   });
 
   describe('when reading from the Proxy, out-of-scope files...', function () {
-    let testFiles;
-    const fakeMetalsmith = {};
-    const dummy = sinon.stub().callsFake((files, metalsmith, callback) => callback());
-
-    beforeEach(function () {
-      testFiles = {
-        'contents/posts/post-0.md': {
-          contents: Buffer.from('*hello world*')
-        },
-        'contents/posts/post-1.html': {
-          contents: Buffer.from('<em>hello world</em>')
-        },
-        'index.md': {
-          contents: Buffer.from('# A Sample Website')
-        },
-        'contents/top-level.html': {
-          contents: Buffer.from('Not a post')
-        }
-      };
-      dummy.resetHistory();
-    });
 
     it('should be hidden from indexing/direct access operations', function () {
       scoped(dummy, ['contents/posts/*'])(testFiles, fakeMetalsmith, function () {
