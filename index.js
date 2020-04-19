@@ -13,28 +13,40 @@ function scoped(plugin, patterns, multimatchOptions) {
       return ((typeof property) !== 'symbol'
               && multimatch(property, patterns, multimatchOptions).length === 0);
     }
+    function nonConfigurable(target, property) {
+      const descriptor = Object.getOwnPropertyDescriptor(target, property);
+      return descriptor && !descriptor.configurable;
+    }
+    function getInvariant(target, property) {
+      const descriptor = Object.getOwnPropertyDescriptor(target, property);
+      return descriptor && descriptor.writable === false && descriptor.configurable === false;
+    }
     const filesView = new Proxy(files, {
-      get: function (target, property) {
-        if (shouldBlock(property)) {
+      get: function (target, property, receiver) {
+        if (shouldBlock(property) && !getInvariant(target, property)) {
           return undefined;
         } else {
-          return target[property];
+          return Reflect.get(target, property, receiver);
         }
       },
       ownKeys: function (target) {
-        return Reflect.ownKeys(target).filter(
-          (key) => !shouldBlock(key)
-        );
+        if (!Object.isExtensible(target)) {
+          return Reflect.ownKeys(target);
+        } else {
+          return Reflect.ownKeys(target).filter(
+            (key) => !shouldBlock(key) || nonConfigurable(target, key)
+          );
+        }
       },
       has: function (target, property) {
-        if (shouldBlock(property)) {
+        if (shouldBlock(property) && Object.isExtensible(target) && !nonConfigurable(target, property)) {
           return false;
         } else {
           return Reflect.has(target, property);
         }
       },
       getOwnPropertyDescriptor: function (target, property) {
-        if (shouldBlock(property)) {
+        if (shouldBlock(property) && Object.isExtensible(target) && !nonConfigurable(target, property)) {
           return undefined;
         } else {
           return Reflect.getOwnPropertyDescriptor(target, property);
