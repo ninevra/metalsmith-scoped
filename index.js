@@ -1,8 +1,15 @@
+'use strict';
+
 const multimatch = require('multimatch');
 
-// TODO: CLI interface, plugin as string, require wrapped plugin using string
-
-function scoped(plugin, patterns, multimatchOptions) {
+function scoped(plugin, patterns, multimatchOptions={}) {
+  if ((typeof plugin) !== 'function') {
+    // Handle CLI usage
+    [plugin, patterns, multimatchOptions={}] = plugin;
+    const [pluginName, pluginArgs] = Object.entries(plugin)[0];
+    // TODO: should we mirror metalsmith's multi-step require here?
+    plugin = require(pluginName)(pluginArgs);
+  }
   return function scopedPlugin(files, metalsmith, callback) {
     function shouldBlock(property) {
       return ((typeof property) !== 'symbol'
