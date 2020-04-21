@@ -1,0 +1,10 @@
+{
+  "source": "src",
+  "destination": "build",
+  "plugins": {
+    "../../../../index.js": [
+      {"metalsmith-markdown": true},
+      ["index.md", "index.html"]
+    ]
+  }
+}
