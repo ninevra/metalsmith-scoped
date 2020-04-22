@@ -66,11 +66,11 @@ function scoped(plugin, patterns, multimatchOptions={}) {
           return Reflect.defineProperty(target, property, descriptor);
         }
       },
-      set: function (target, property, value) {
+      set: function (target, property, value, receiver) {
         if (shouldWriteBlock(property)) {
           throw new Error(`${plugin.name} tried to set ${property}, out of scope ${patterns}`);
         } else {
-          return Reflect.set(target, property, value); // TODO: add receivers here and elsewhere
+          return Reflect.set(target, property, value, receiver);
         }
       },
       deleteProperty: function (target, property) {
