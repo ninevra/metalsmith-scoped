@@ -14,12 +14,18 @@ describe('usage examples', function () {
 
   after(function (done) {
     rimraf('test/fixtures/**/build', done);
-  })
+  });
 
   context('as javascript build script', function () {
     it('should process markdown only in scope', function (done) {
       Metalsmith('test/fixtures/markdown-example/')
-        .use(scoped(markdown(), ['index.md', 'index.html']))
+        .source('src')
+        .destination('build')
+        .use(scoped(
+          markdown(),
+          ["posts/**/*.md", "index.md", "**/*.html"],
+          {dot: true}
+        ))
         .build((err) => {
           if (err) throw err;
           assertDirEqual(
