@@ -18,8 +18,7 @@ describe('proxy invariants', function () {
   }
 
   describe('get', function () {
-    it('should truthfully report non-writable, non-configurable data properties', async function () {
-      // TODO: test with inheritance? probably not reachable with scoped
+    it('should truthfully report non-writable, non-configurable own data properties', async function () {
       const obj = {};
       Object.defineProperty(obj, 'path/to/file', {
         configurable: false,
