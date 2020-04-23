@@ -2,6 +2,15 @@
 
 const multimatch = require('multimatch');
 
+function hasOwnPropertyMatching(target, property, spec, invert=false) {
+  const descriptor = Object.getOwnPropertyDescriptor(target, property);
+  if (!descriptor) return false;
+  for (let [key, value] of Object.entries(spec)) {
+    if (descriptor[key] !== value) return invert;
+  }
+  return !invert;
+}
+
 function scoped(plugin, patterns, multimatchOptions={}) {
   if ((typeof plugin) !== 'function') {
     // Handle CLI usage
@@ -13,19 +22,11 @@ function scoped(plugin, patterns, multimatchOptions={}) {
   return function scopedPlugin(files, metalsmith, callback) {
     function matches(property) {
       return ((typeof property) !== 'symbol'
-              && multimatch(property, patterns, multimatchOptions).length === 0)
-    }
-    function nonConfigurable(target, property) {
-      const descriptor = Object.getOwnPropertyDescriptor(target, property);
-      return descriptor && !descriptor.configurable;
-    }
-    function getInvariant(target, property) {
-      const descriptor = Object.getOwnPropertyDescriptor(target, property);
-      return descriptor && descriptor.writable === false && descriptor.configurable === false;
+              && multimatch(property, patterns, multimatchOptions).length === 0);
     }
     const filesView = new Proxy(files, {
       get: function (target, property, receiver) {
-        if (matches(property) && target.hasOwnProperty(property) && !getInvariant(target, property)) {
+        if (matches(property) && hasOwnPropertyMatching(target, property, {writable: false, configurable: false}, true)) {
           return undefined;
         } else {
           return Reflect.get(target, property, receiver);
@@ -36,19 +37,21 @@ function scoped(plugin, patterns, multimatchOptions={}) {
           return Reflect.ownKeys(target);
         } else {
           return Reflect.ownKeys(target).filter(
-            (key) => !matches(key) || nonConfigurable(target, key)
+            (key) => !matches(key) || hasOwnPropertyMatching(target, key, {configurable: false})
           );
         }
       },
       has: function (target, property) {
-        if (matches(property) && target.hasOwnProperty(property) && Object.isExtensible(target) && !nonConfigurable(target, property)) {
+        if (matches(property) && Object.isExtensible(target)
+            && hasOwnPropertyMatching(target, property, {configurable: false}, true)) {
           return false;
         } else {
           return Reflect.has(target, property);
         }
       },
       getOwnPropertyDescriptor: function (target, property) {
-        if (matches(property) && target.hasOwnProperty(property) && Object.isExtensible(target) && !nonConfigurable(target, property)) {
+        if (matches(property) && Object.isExtensible(target)
+            && hasOwnPropertyMatching(target, property, {configurable: false}, true)) {
           return undefined;
         } else {
           return Reflect.getOwnPropertyDescriptor(target, property);
