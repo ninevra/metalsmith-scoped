@@ -1,6 +1,6 @@
 {
   "name": "metalsmith-scoped",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Restrict the scope of a metalsmith plugin to a subset of files.",
   "main": "index.js",
   "files": [],
