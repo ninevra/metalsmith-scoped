@@ -2,6 +2,13 @@
 
 const multimatch = require('multimatch');
 
+/**
+ * Checks whether an object has an own property matching the given specification.
+ * @param {Object} target - the object to examine
+ * @param {string|Symbol} - the name of the property to examine
+ * @param {Object} spec - a partial property descriptor to which to compare the property
+ * @param {boolean} [invert=false] - if true, check for a mismatching own property instead
+ */
 function hasOwnPropertyMatching(target, property, spec, invert=false) {
   const descriptor = Object.getOwnPropertyDescriptor(target, property);
   if (!descriptor) return false;
@@ -11,6 +18,10 @@ function hasOwnPropertyMatching(target, property, spec, invert=false) {
   return !invert;
 }
 
+/**
+ * Returns a metalsmith plugin wrapping the given plugin and limiting it to the
+ * given scope.
+*/
 function scoped(plugin, patterns, multimatchOptions={}) {
   if ((typeof plugin) !== 'function') {
     // Handle CLI usage
