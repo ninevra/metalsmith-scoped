@@ -1,6 +1,6 @@
 const Metalsmith = require('metalsmith');
 const expect = require('chai').expect;
-const markdown = require('metalsmith-markdown');
+const markdown = require('@metalsmith/markdown');
 const scoped = require('../index.js');
 const assertDirEqual = require('assert-dir-equal');
 const rimraf = require('rimraf');

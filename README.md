@@ -31,7 +31,7 @@ For CLI support, `scoped` can also be called with a one-argument signature:
 
 ```javascript
 const scoped = require('metalsmith-scoped');
-const markdown = require('metalsmith-markdown');
+const markdown = require('@metalsmith/markdown');
 
 Metalsmith(__dirname)
   .source('src')
@@ -56,7 +56,7 @@ Example `metalsmith.json`:
   "destination": "build",
   "plugins": [
     {"metalsmith-scoped": [
-      {"metalsmith-markdown": true},
+      {"@metalsmith/markdown": true},
       ["posts/**/*.md", "index.md", "**/*.html"],
       {"dot": true}
     ]}

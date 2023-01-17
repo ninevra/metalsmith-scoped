@@ -3,7 +3,7 @@
   "destination": "build",
   "plugins": [
     {"../../../../index.js": [
-      {"metalsmith-markdown": true},
+      {"@metalsmith/markdown": true},
       ["posts/**/*.md", "index.md", "**/*.html"],
       {"dot": true}
     ]}
